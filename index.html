@@ -111,8 +111,11 @@ body{background:var(--bg);color:var(--text);font-family:Inter,sans-serif;min-hei
 </div>
 <div id="preview-tab">
 <div class="action-bar">
-<button class="action-btn">Filter by Platform</button>
-<button class="action-btn">Sort by Date</button>
+<label class="action-btn" style="cursor:pointer">
+📤 Upload Images
+<input type="file" id="imageUpload" accept="image/*" multiple style="display:none" onchange="handleImageUpload(event)">
+</label>
+<button class="action-btn" onclick="clearUploadedImages()">🗑️ Clear All</button>
 </div>
 <div class="preview-grid" id="previewGrid"></div>
 </div>
@@ -217,17 +220,73 @@ for(let i=daysInMonth+firstDay;i<42;i++){html+='<div class="calendar-day empty">
 document.getElementById('calendarGrid').innerHTML = html;
 document.getElementById('currentMonth').textContent = new Date(y,m).toLocaleDateString('en-US',{month:'long',year:'numeric'});
 }
+// Uploaded images storage
+let uploadedImages = JSON.parse(localStorage.getItem('uploadedImages') || '[]');
+
 function renderPreview(){
 let html = '';
 const posts = events.filter(e=>e.type==='post');
-if(posts.length===0){
-html = '<div class="empty-state"><h3>No posts yet</h3><p>Schedule your first post to see it here</p></div>';
-}else{
+const images = uploadedImages;
+
+if(posts.length===0 && images.length===0){
+html = '<div class="empty-state"><h3>No content yet</h3><p>Upload images or schedule posts to see them here</p></div>';
+}
+
+// Render uploaded images first
+images.forEach((img, idx) => {
+html += '<div class="preview-card"><div class="preview-image" style="background:#1a1a1a"><img src="'+img.data+'" style="max-width:100%;max-height:100%;object-fit:contain"></div><div class="preview-info"><h3>'+img.name+'</h3><div class="meta">Uploaded: '+img.date+'</div></div><div class="preview-actions"><button onclick="downloadImage('+idx+')">⬇️ Download</button><button onclick="deleteImage('+idx+')">🗑️ Delete</button></div></div>';
+});
+
+// Render scheduled posts
 posts.forEach(p=>{
 html += '<div class="preview-card"><div class="preview-image"><div><div class="quote">'+p.quote+'</div>'+(p.author?'<div class="author">— '+p.author+'</div>':'')+'</div></div><div class="preview-info"><h3>'+p.title+'</h3><div class="meta">'+p.date+' • '+p.platform+'</div></div><div class="preview-actions"><button onclick="editPost('+p.id+')">✏️ Edit</button><button onclick="copyPost('+p.id+')">📋 Copy</button></div></div>';
 });
-}
 document.getElementById('previewGrid').innerHTML = html;
+}
+
+function handleImageUpload(event){
+const files = event.target.files;
+if(!files.length) return;
+
+Array.from(files).forEach(file => {
+const reader = new FileReader();
+reader.onload = function(e){
+const imgData = {
+name: file.name,
+data: e.target.result,
+date: new Date().toLocaleDateString()
+};
+uploadedImages.push(imgData);
+localStorage.setItem('uploadedImages', JSON.stringify(uploadedImages));
+renderPreview();
+};
+reader.readAsDataURL(file);
+});
+alert('Images uploaded! 📤');
+}
+
+function downloadImage(idx){
+const img = uploadedImages[idx];
+const link = document.createElement('a');
+link.download = img.name;
+link.href = img.data;
+link.click();
+}
+
+function deleteImage(idx){
+if(confirm('Delete this image?')){
+uploadedImages.splice(idx, 1);
+localStorage.setItem('uploadedImages', JSON.stringify(uploadedImages));
+renderPreview();
+}
+}
+
+function clearUploadedImages(){
+if(confirm('Clear all uploaded images?')){
+uploadedImages = [];
+localStorage.setItem('uploadedImages', JSON.stringify(uploadedImages));
+renderPreview();
+}
 }
 function changeMonth(delta){
 currentMonth += delta;
