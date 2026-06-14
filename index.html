@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Action Compound Fail - Content Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0A0A0A;--card:#141414;--border:#1f1f1f;--accent:#10b981;--accent-dim:#065f46;--text:#f5f5f5;--muted:#a1a1a1;--sidebar:#0d0d0d}
+body{background:var(--bg);color:var(--text);font-family:Inter,sans-serif;min-height:100vh;display:flex}
+.sidebar{width:240px;background:var(--sidebar);border-right:1px solid var(--border);padding:1.5rem 0;position:fixed;height:100vh}
+.sidebar-logo{padding:0 1.5rem;margin-bottom:2rem;font-family:Space Grotesk,serif;font-size:1.25rem;font-weight:700;color:var(--accent)}
+.sidebar-nav{display:flex;flex-direction:column}
+.sidebar-nav a{padding:0.75rem 1.5rem;color:var(--muted);text-decoration:none;font-weight:500;transition:all 0.2s;border-left:3px solid transparent}
+.sidebar-nav a:hover,.sidebar-nav a.active{background:rgba(16,185,129,0.1);color:var(--accent);border-left-color:var(--accent)}
+.sidebar-section{padding:1.5rem 1.5rem 0.5rem;font-size:0.7rem;text-transform:uppercase;color:var(--muted);letter-spacing:1px}
+.main{flex:1;margin-left:240px;padding:2rem}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem}
+.header h1{font-family:Space Grotesk,serif;font-size:1.75rem}
+.tabs{display:flex;gap:0.5rem;background:var(--card);padding:0.25rem;border-radius:12px;margin-bottom:1.5rem}
+.tab{padding:0.75rem 1.5rem;background:transparent;border:none;color:var(--muted);font-weight:500;cursor:pointer;border-radius:8px;transition:all 0.2s}
+.tab.active{background:var(--accent);color:#000}
+.tabs-content > div{display:none}
+.tabs-content > div.active{display:block}
+.calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.calendar-header h2{font-family:Space Grotesk,serif;font-size:1.25rem}
+.nav-btns{display:flex;gap:0.5rem}
+.nav-btns button{background:var(--card);border:1px solid var(--border);color:var(--text);padding:0.5rem 1rem;border-radius:8px;cursor:pointer}
+.nav-btns button:hover{border-color:var(--accent)}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border-radius:12px;overflow:hidden}
+.calendar-day{background:var(--card);min-height:100px;padding:0.5rem}
+.calendar-day.header{background:var(--bg);min-height:auto;padding:0.75rem;text-align:center;font-weight:600;color:var(--muted);font-size:0.75rem}
+.calendar-day.empty{background:var(--bg)}
+.calendar-day .date{font-weight:600;margin-bottom:0.25rem;color:var(--muted);font-size:0.8rem}
+.calendar-day.today .date{color:var(--accent)}
+.event{background:var(--accent-dim);border-radius:4px;padding:0.25rem 0.5rem;margin-bottom:0.25rem;font-size:0.7rem;cursor:pointer;border-left:2px solid var(--accent)}
+.event:hover{background:var(--accent)}
+.event .event-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.event .event-time{color:var(--accent);font-size:0.6rem}
+.action-bar{display:flex;gap:1rem;margin-bottom:2rem;flex-wrap:wrap}
+.action-btn{display:flex;align-items:center;gap:0.5rem;padding:0.75rem 1.25rem;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;font-weight:500;transition:all 0.2s}
+.action-btn:hover{border-color:var(--accent);color:var(--accent)}
+.action-btn.primary{background:var(--accent);border-color:var(--accent);color:#000}
+.action-btn.primary:hover{background:#059669}
+.preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem}
+.preview-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all 0.2s}
+.preview-card:hover{border-color:var(--accent)}
+.preview-image{aspect-ratio:4/5;background:linear-gradient(135deg,#0a0a0a,#1a1a1a);display:flex;align-items:center;justify-content:center;padding:1.5rem;text-align:center}
+.preview-image .quote{font-family:Space Grotesk,serif;font-size:1rem;font-weight:600}
+.preview-image .author{color:var(--muted);font-size:0.8rem;margin-top:0.5rem}
+.preview-info{padding:1rem;border-top:1px solid var(--border)}
+.preview-info h3{font-size:0.9rem;margin-bottom:0.25rem}
+.preview-info .meta{font-size:0.75rem;color:var(--muted)}
+.preview-actions{display:flex;gap:0.5rem;padding:0.75rem;border-top:1px solid var(--border)}
+.preview-actions button{flex:1;padding:0.5rem;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;font-size:0.8rem}
+.preview-actions button:hover{border-color:var(--accent);color:var(--accent)}
+.modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal.active{display:flex}
+.modal-content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:600px;width:90%;max-height:90vh;overflow-y:auto}
+.modal-content h2{font-family:Space Grotesk,serif;margin-bottom:1.5rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;margin-bottom:0.5rem;font-weight:500;font-size:0.9rem}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:0.75rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.9rem}
+.form-group textarea{min-height:100px;resize:vertical}
+.btn{display:inline-block;padding:0.75rem 1.5rem;background:var(--accent);color:#000;font-weight:600;border-radius:8px;border:none;cursor:pointer;font-size:0.9rem}
+.btn:hover{opacity:0.9}
+.btn-secondary{background:var(--card);border:1px solid var(--border);color:var(--text)}
+.btn-row{display:flex;gap:1rem;margin-top:1.5rem}
+.empty-state{text-align:center;padding:3rem;color:var(--muted)}
+.empty-state h3{margin-bottom:0.5rem}
+</style>
+</head>
+<body>
+<div class="sidebar">
+<div class="sidebar-logo">⚡ Action Compound Fail</div>
+<nav class="sidebar-nav">
+<a href="#" class="active" onclick="switchTab('planner')">📅 Content Planner</a>
+<a href="#" onclick="switchTab('preview')">🖼️ Content Preview</a>
+</nav>
+<div class="sidebar-section">Quick Actions</div>
+<nav class="sidebar-nav">
+<a href="#" onclick="openModal('post')">📝 New Post</a>
+<a href="#" onclick="openModal('event')">📌 Add Event</a>
+</nav>
+</div>
+<div class="main">
+<div class="header">
+<h1>Content Planner</h1>
+</div>
+<div class="tabs">
+<button class="tab active" onclick="switchTab('planner')">📅 Calendar</button>
+<button class="tab" onclick="switchTab('preview')">🖼️ Preview</button>
+</div>
+<div class="tabs-content">
+<div id="planner-tab" class="active">
+<div class="action-bar">
+<button class="action-btn primary" onclick="openModal('post')">+ Schedule Post</button>
+<button class="action-btn" onclick="openModal('event')">📌 Add Event</button>
+<button class="action-btn">🔗 Connect Accounts</button>
+</div>
+<div class="calendar-header">
+<h2 id="currentMonth">June 2026</h2>
+<div class="nav-btns">
+<button onclick="changeMonth(-1)">← Prev</button>
+<button onclick="changeMonth(1)">Next →</button>
+</div>
+</div>
+<div class="calendar-grid" id="calendarGrid"></div>
+</div>
+<div id="preview-tab">
+<div class="action-bar">
+<button class="action-btn">Filter by Platform</button>
+<button class="action-btn">Sort by Date</button>
+</div>
+<div class="preview-grid" id="previewGrid"></div>
+</div>
+</div>
+</div>
+<div class="modal" id="postModal">
+<div class="modal-content">
+<h2>📝 Schedule Post</h2>
+<div class="form-row">
+<div class="form-group">
+<label>Platform</label>
+<select id="postPlatform">
+<option value="instagram">📸 Instagram</option>
+<option value="twitter">🐦 Twitter/X</option>
+<option value="facebook">📘 Facebook</option>
+<option value="linkedin">💼 LinkedIn</option>
+</select>
+</div>
+<div class="form-group">
+<label>Date</label>
+<input type="date" id="postDate">
+</div>
+</div>
+<div class="form-group">
+<label>Your Quote / Content</label>
+<textarea id="postContent" placeholder="Enter your motivational quote..."></textarea>
+</div>
+<div class="form-group">
+<label>Author (optional)</label>
+<input type="text" id="postAuthor" placeholder="e.g., Simon Sinek">
+</div>
+<div class="form-group">
+<label>Style</label>
+<select id="postStyle">
+<option value="dark">Dark with Green Accent</option>
+<option value="gradient">Gradient Flow</option>
+<option value="minimal">Minimal White</option>
+</select>
+</div>
+<div class="btn-row">
+<button class="btn" onclick="savePost()">Save Post</button>
+<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+</div>
+</div>
+</div>
+<div class="modal" id="eventModal">
+<div class="modal-content">
+<h2>📌 Add Event</h2>
+<div class="form-group">
+<label>Event Name</label>
+<input type="text" id="eventName" placeholder="e.g., International Yoga Day">
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Date</label>
+<input type="date" id="eventDate">
+</div>
+<div class="form-group">
+<label>Event Type</label>
+<select id="eventType">
+<option value="awareness">Awareness Day</option>
+<option value="holiday">Holiday</option>
+<option value="custom">Custom</option>
+</select>
+</div>
+</div>
+<div class="form-group">
+<label>Description</label>
+<textarea id="eventDesc" placeholder="Optional description..."></textarea>
+</div>
+<div class="btn-row">
+<button class="btn" onclick="saveEvent()">Add Event</button>
+<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+</div>
+</div>
+</div>
+<script>
+let events = [
+{id:1,date:"2026-06-05",title:"World Environment Day",type:"awareness"},
+{id:2,date:"2026-06-21",title:"International Yoga Day",type:"awareness"},
+{id:3,date:"2026-06-13",title:"Success quote post",type:"post",platform:"instagram",quote:"Success is the sum of small efforts.",author:"Robert Collier"},
+{id:4,date:"2026-06-14",title:"Keep Going quote",type:"post",platform:"instagram",quote:"Do not watch the clock; do what it does. Keep going.",author:""},
+{id:5,date:"2026-06-15",title:"Beginner quote",type:"post",platform:"instagram",quote:"Every expert was once a beginner.",author:""}
+];
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+function renderCalendar(){
+const m = currentMonth;
+const y = currentYear;
+const firstDay = new Date(y,m,1).getDay();
+const daysInMonth = new Date(y,m+1,0).getDate();
+let html = '<div class="calendar-day header">SUN</div><div class="calendar-day header">MON</div><div class="calendar-day header">TUE</div><div class="calendar-day header">WED</div><div class="calendar-day header">THU</div><div class="calendar-day header">FRI</div><div class="calendar-day header">SAT</div>';
+for(let i=0;i<firstDay;i++){html+='<div class="calendar-day empty"></div>'}
+for(let day=1;day<=daysInMonth;day++){
+const dateStr = y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+const dayEvents = events.filter(e=>e.date===dateStr);
+let dayClass = 'calendar-day'+(day===new Date().getDate()&&m===new Date().getMonth()&&y===new Date().getFullYear()?' today':'');
+html+='<div class="'+dayClass+'"><div class="date">'+day+'</div>';
+dayEvents.forEach(e=>{html+='<div class="event" onclick="viewEvent('+e.id+')"><div class="event-title">'+e.title+'</div><div class="event-time">'+e.type+'</div></div>'});
+html+='</div>'}
+for(let i=daysInMonth+firstDay;i<42;i++){html+='<div class="calendar-day empty"></div>'}
+document.getElementById('calendarGrid').innerHTML = html;
+document.getElementById('currentMonth').textContent = new Date(y,m).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+}
+function renderPreview(){
+let html = '';
+const posts = events.filter(e=>e.type==='post');
+if(posts.length===0){
+html = '<div class="empty-state"><h3>No posts yet</h3><p>Schedule your first post to see it here</p></div>';
+}else{
+posts.forEach(p=>{
+html += '<div class="preview-card"><div class="preview-image"><div><div class="quote">'+p.quote+'</div>'+(p.author?'<div class="author">— '+p.author+'</div>':'')+'</div></div><div class="preview-info"><h3>'+p.title+'</h3><div class="meta">'+p.date+' • '+p.platform+'</div></div><div class="preview-actions"><button onclick="editPost('+p.id+')">✏️ Edit</button><button onclick="copyPost('+p.id+')">📋 Copy</button></div></div>';
+});
+}
+document.getElementById('previewGrid').innerHTML = html;
+}
+function changeMonth(delta){
+currentMonth += delta;
+if(currentMonth>11){currentMonth=0;currentYear++}
+if(currentMonth<0){currentMonth=11;currentYear--}
+renderCalendar();
+}
+function switchTab(tab){
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.tabs-content > div').forEach(d=>d.classList.remove('active'));
+event.target.classList.add('active');
+if(tab==='planner'){
+document.getElementById('planner-tab').classList.add('active');
+}else{
+document.getElementById('preview-tab').classList.add('active');
+renderPreview();
+}
+}
+function openModal(type){
+if(type==='post'){
+document.getElementById('postModal').classList.add('active');
+document.getElementById('postDate').value = new Date().toISOString().split('T')[0];
+}else{
+document.getElementById('eventModal').classList.add('active');
+document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
+}
+}
+function closeModal(){
+document.querySelectorAll('.modal').forEach(m=>m.classList.remove('active'));
+}
+function savePost(){
+const content = document.getElementById('postContent').value;
+if(!content){alert('Please enter content');return;}
+const newEvent = {
+id: Date.now(),
+date: document.getElementById('postDate').value,
+title: content.substring(0,25)+'...',
+type: 'post',
+platform: document.getElementById('postPlatform').value,
+quote: content,
+author: document.getElementById('postAuthor').value
+};
+events.push(newEvent);
+renderCalendar();
+closeModal();
+alert('Post scheduled! 🗓️');
+}
+function saveEvent(){
+const name = document.getElementById('eventName').value;
+if(!name){alert('Please enter event name');return;}
+const newEvent = {
+id: Date.now(),
+date: document.getElementById('eventDate').value,
+title: name,
+type: document.getElementById('eventType').value,
+desc: document.getElementById('eventDesc').value
+};
+events.push(newEvent);
+renderCalendar();
+closeModal();
+alert('Event added! 📌');
+}
+function viewEvent(id){
+const e = events.find(x=>x.id===id);
+if(e && e.type==='post'){
+document.getElementById('postContent').value = e.quote || '';
+document.getElementById('postAuthor').value = e.author || '';
+document.getElementById('postDate').value = e.date;
+document.getElementById('postPlatform').value = e.platform || 'instagram';
+document.getElementById('postModal').classList.add('active');
+}
+}
+function editPost(id){
+viewEvent(id);
+}
+function copyPost(id){
+const e = events.find(x=>x.id===id);
+if(e){
+const text = e.quote + (e.author ? '\n\n— '+e.author : '');
+navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard! 📋'));
+}
+}
+renderCalendar();
+</script>
+</body>
+</html>
